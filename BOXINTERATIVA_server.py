@@ -29,22 +29,17 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secretkey'
 socketio = SocketIO(app, cors_allowed_origins='*')
 
-# Armazena {room_id: {"kiosk": sid_kiosk, "remote": sid_remote}}
+# Dicionário de salas: rooms[room_id] = { "kiosk": sid, "remote": sid }
 rooms = {}
 
 #######################
-# API Endpoint p/ Salas
+# API Endpoint
 #######################
 @app.route('/api/v1/salas', methods=['GET'])
 def api_salas():
-    """
-    Retorna a lista de salas e seus kiosk/remote em JSON.
-    Necessita header: X-Secret-Token: SECRET_API_TOKEN
-    """
     token_header = request.headers.get("X-Secret-Token")
     if token_header != SECRET_API_TOKEN:
         return jsonify({"error": "Acesso não autorizado"}), 401
-
     data = {}
     for room_id, mapping in rooms.items():
         data[room_id] = {
@@ -53,11 +48,11 @@ def api_salas():
         }
     return jsonify(data)
 
+#######################
+# Interface de Gerenciamento
+#######################
 @app.route('/manage')
 def manage_rooms():
-    """
-    Exibe uma listagem simples das salas
-    """
     html = "<h1>Gerenciamento de Salas</h1><ul>"
     for room_id, mapping in rooms.items():
         kiosk_sid = mapping["kiosk"]
@@ -68,7 +63,7 @@ def manage_rooms():
 
 @app.route('/')
 def index():
-    return "Servidor BOXINTERATIVA rodando! (Produção)"
+    return "Servidor BOXINTERATIVA rodando! Aguardando conexões..."
 
 @socketio.on('connect')
 def on_connect():
@@ -103,7 +98,7 @@ def on_register(data):
 def on_offer(msg):
     room_id = msg.get("room_id", "default-room")
     remote_sid = rooms.get(room_id, {}).get("remote")
-    logger.info("[SERVER] Offer na sala=%s -> repassando p/ remote", room_id)
+    logger.info("[SERVER] Offer na sala=%s -> repassando p/ remote.", room_id)
     if remote_sid:
         socketio.emit('offer', msg, room=remote_sid)
 
@@ -111,7 +106,7 @@ def on_offer(msg):
 def on_answer(msg):
     room_id = msg.get("room_id", "default-room")
     kiosk_sid = rooms.get(room_id, {}).get("kiosk")
-    logger.info("[SERVER] Answer na sala=%s -> repassando p/ kiosk", room_id)
+    logger.info("[SERVER] Answer na sala=%s -> repassando p/ kiosk.", room_id)
     if kiosk_sid:
         socketio.emit('answer', msg, room=kiosk_sid)
 
@@ -121,7 +116,6 @@ def on_ice_candidate(msg):
     sender = eventlet.wsgi.get_current_thread()
     kiosk_sid = rooms[room_id].get("kiosk")
     remote_sid = rooms[room_id].get("remote")
-
     if sender == kiosk_sid and remote_sid:
         socketio.emit('ice-candidate', msg, room=remote_sid)
     elif sender == remote_sid and kiosk_sid:
@@ -133,7 +127,6 @@ def on_hangup(msg):
     sender = eventlet.wsgi.get_current_thread()
     kiosk_sid = rooms[room_id].get("kiosk")
     remote_sid = rooms[room_id].get("remote")
-
     if sender == kiosk_sid and remote_sid:
         logger.info("[SERVER] Hangup kiosk->remote, sala=%s", room_id)
         socketio.emit('hangup', {}, room=remote_sid)
@@ -147,7 +140,6 @@ def on_renegotiate(msg):
     sender = eventlet.wsgi.get_current_thread()
     kiosk_sid = rooms[room_id].get("kiosk")
     remote_sid = rooms[room_id].get("remote")
-
     if sender == remote_sid and kiosk_sid:
         logger.info("[SERVER] Remote renegotiate->kiosk, sala=%s", room_id)
         socketio.emit('renegotiate', {}, room=kiosk_sid)
@@ -159,7 +151,6 @@ def on_renegotiate(msg):
 def on_disconnect():
     sid = eventlet.wsgi.get_current_thread()
     logger.info("[SERVER] Cliente desconectou. SID=%s", sid)
-
     for r_id, mapping in rooms.items():
         if mapping.get("kiosk") == sid:
             mapping["kiosk"] = None
