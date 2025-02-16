@@ -2,14 +2,12 @@ import eventlet
 eventlet.monkey_patch()
 
 import logging
-import os
 from logging.handlers import RotatingFileHandler
 from flask import Flask, render_template_string, request, jsonify
 from flask_socketio import SocketIO, emit
 
 from config import (
     AUTH_TOKEN,
-    ICE_SERVERS,
     LOG_FILE_SERVER,
     PORT,
     DEBUG_MODE,
@@ -62,7 +60,7 @@ def index():
 
 @socketio.on('connect')
 def on_connect():
-    sid = eventlet.wsgi.get_current_thread()
+    sid = request.sid
     logger.info("[SERVER] Novo cliente conectado. SID=%s", sid)
 
 @socketio.on('register')
@@ -70,7 +68,7 @@ def on_register(data):
     role = data.get('role')
     token = data.get('token')
     room_id = data.get('room_id', "default-room")
-    sid = eventlet.wsgi.get_current_thread()
+    sid = request.sid
 
     if token != AUTH_TOKEN:
         logger.warning("[SERVER] Auth falhou. SID=%s, token=%s", sid, token)
@@ -108,7 +106,7 @@ def on_answer(msg):
 @socketio.on('ice-candidate')
 def on_ice_candidate(msg):
     room_id = msg.get("room_id", "default-room")
-    sender = eventlet.wsgi.get_current_thread()
+    sender = request.sid
     kiosk_sid = rooms[room_id].get("kiosk")
     remote_sid = rooms[room_id].get("remote")
     if sender == kiosk_sid and remote_sid:
@@ -119,7 +117,7 @@ def on_ice_candidate(msg):
 @socketio.on('hangup')
 def on_hangup(msg):
     room_id = msg.get("room_id", "default-room")
-    sender = eventlet.wsgi.get_current_thread()
+    sender = request.sid
     kiosk_sid = rooms[room_id].get("kiosk")
     remote_sid = rooms[room_id].get("remote")
     if sender == kiosk_sid and remote_sid:
@@ -132,7 +130,7 @@ def on_hangup(msg):
 @socketio.on('renegotiate')
 def on_renegotiate(msg):
     room_id = msg.get("room_id", "default-room")
-    sender = eventlet.wsgi.get_current_thread()
+    sender = request.sid
     kiosk_sid = rooms[room_id].get("kiosk")
     remote_sid = rooms[room_id].get("remote")
     if sender == remote_sid and kiosk_sid:
@@ -144,7 +142,7 @@ def on_renegotiate(msg):
 
 @socketio.on('disconnect')
 def on_disconnect():
-    sid = eventlet.wsgi.get_current_thread()
+    sid = request.sid
     logger.info("[SERVER] Cliente desconectou. SID=%s", sid)
     for r_id, mapping in rooms.items():
         if mapping.get("kiosk") == sid:
