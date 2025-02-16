@@ -28,12 +28,12 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secretkey'
 socketio = SocketIO(app, cors_allowed_origins='*')
 
-# Armazena as salas: rooms[room_id] = {"kiosk": sid, "remote": sid}
+# Dicionário de salas: rooms[room_id] = {"kiosk": sid, "remote": sid}
 rooms = {}
 
-#######################
-# API de Gerenciamento
-#######################
+###############################
+# API Endpoint para Gerenciamento de Salas
+###############################
 @app.route('/api/v1/salas', methods=['GET'])
 def api_salas():
     token_header = request.headers.get("X-Secret-Token")
@@ -43,9 +43,9 @@ def api_salas():
             for room_id, mapping in rooms.items()}
     return jsonify(data)
 
-#######################
-# Interface simples de gerenciamento
-#######################
+###############################
+# Interface de Gerenciamento Simples
+###############################
 @app.route('/manage')
 def manage_rooms():
     html = "<h1>Gerenciamento de Salas</h1><ul>"
@@ -67,9 +67,6 @@ def on_connect():
 
 @socketio.on('register')
 def on_register(data):
-    """
-    data: { 'role': 'kiosk' ou 'remote', 'token': '...', 'room_id': '...' }
-    """
     role = data.get('role')
     token = data.get('token')
     room_id = data.get('room_id', "default-room")
@@ -96,7 +93,7 @@ def on_register(data):
 def on_offer(msg):
     room_id = msg.get("room_id", "default-room")
     remote_sid = rooms.get(room_id, {}).get("remote")
-    logger.info("[SERVER] Offer na sala=%s -> repassando p/ remote.", room_id)
+    logger.info("[SERVER] Offer na sala=%s -> repassando para remote.", room_id)
     if remote_sid:
         socketio.emit('offer', msg, room=remote_sid)
 
@@ -104,7 +101,7 @@ def on_offer(msg):
 def on_answer(msg):
     room_id = msg.get("room_id", "default-room")
     kiosk_sid = rooms.get(room_id, {}).get("kiosk")
-    logger.info("[SERVER] Answer na sala=%s -> repassando p/ kiosk.", room_id)
+    logger.info("[SERVER] Answer na sala=%s -> repassando para kiosk.", room_id)
     if kiosk_sid:
         socketio.emit('answer', msg, room=kiosk_sid)
 
@@ -126,10 +123,10 @@ def on_hangup(msg):
     kiosk_sid = rooms[room_id].get("kiosk")
     remote_sid = rooms[room_id].get("remote")
     if sender == kiosk_sid and remote_sid:
-        logger.info("[SERVER] Hangup kiosk->remote, sala=%s", room_id)
+        logger.info("[SERVER] Hangup de kiosk para remote, sala=%s", room_id)
         socketio.emit('hangup', {}, room=remote_sid)
     elif sender == remote_sid and kiosk_sid:
-        logger.info("[SERVER] Hangup remote->kiosk, sala=%s", room_id)
+        logger.info("[SERVER] Hangup de remote para kiosk, sala=%s", room_id)
         socketio.emit('hangup', {}, room=kiosk_sid)
 
 @socketio.on('renegotiate')
@@ -139,10 +136,10 @@ def on_renegotiate(msg):
     kiosk_sid = rooms[room_id].get("kiosk")
     remote_sid = rooms[room_id].get("remote")
     if sender == remote_sid and kiosk_sid:
-        logger.info("[SERVER] Remote renegotiate->kiosk, sala=%s", room_id)
+        logger.info("[SERVER] Remote renegotiate para kiosk, sala=%s", room_id)
         socketio.emit('renegotiate', {}, room=kiosk_sid)
     elif sender == kiosk_sid and remote_sid:
-        logger.info("[SERVER] Kiosk renegotiate->remote, sala=%s", room_id)
+        logger.info("[SERVER] Kiosk renegotiate para remote, sala=%s", room_id)
         socketio.emit('renegotiate', {}, room=remote_sid)
 
 @socketio.on('disconnect')
