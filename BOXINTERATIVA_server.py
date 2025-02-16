@@ -4,7 +4,7 @@ eventlet.monkey_patch()
 import logging
 import os
 from logging.handlers import RotatingFileHandler
-from flask import Flask, render_template_string
+from flask import Flask, render_template_string, request, jsonify
 from flask_socketio import SocketIO, emit
 
 from config import (
@@ -13,7 +13,8 @@ from config import (
     LOG_FILE_SERVER,
     PORT,
     DEBUG_MODE,
-    VERSION
+    VERSION,
+    SECRET_API_TOKEN
 )
 
 logger = logging.getLogger("boxinterativa.server")
@@ -28,10 +29,35 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secretkey'
 socketio = SocketIO(app, cors_allowed_origins='*')
 
+# Armazena {room_id: {"kiosk": sid_kiosk, "remote": sid_remote}}
 rooms = {}
+
+#######################
+# API Endpoint p/ Salas
+#######################
+@app.route('/api/v1/salas', methods=['GET'])
+def api_salas():
+    """
+    Retorna a lista de salas e seus kiosk/remote em JSON.
+    Necessita header: X-Secret-Token: SECRET_API_TOKEN
+    """
+    token_header = request.headers.get("X-Secret-Token")
+    if token_header != SECRET_API_TOKEN:
+        return jsonify({"error": "Acesso não autorizado"}), 401
+
+    data = {}
+    for room_id, mapping in rooms.items():
+        data[room_id] = {
+            "kiosk": mapping["kiosk"],
+            "remote": mapping["remote"]
+        }
+    return jsonify(data)
 
 @app.route('/manage')
 def manage_rooms():
+    """
+    Exibe uma listagem simples das salas
+    """
     html = "<h1>Gerenciamento de Salas</h1><ul>"
     for room_id, mapping in rooms.items():
         kiosk_sid = mapping["kiosk"]
@@ -42,7 +68,7 @@ def manage_rooms():
 
 @app.route('/')
 def index():
-    return "Servidor BOXINTERATIVA rodando! Aguardando conexões..."
+    return "Servidor BOXINTERATIVA rodando! (Produção)"
 
 @socketio.on('connect')
 def on_connect():
@@ -77,7 +103,7 @@ def on_register(data):
 def on_offer(msg):
     room_id = msg.get("room_id", "default-room")
     remote_sid = rooms.get(room_id, {}).get("remote")
-    logger.info("[SERVER] Offer na sala=%s -> repassando p/ remote.", room_id)
+    logger.info("[SERVER] Offer na sala=%s -> repassando p/ remote", room_id)
     if remote_sid:
         socketio.emit('offer', msg, room=remote_sid)
 
@@ -85,7 +111,7 @@ def on_offer(msg):
 def on_answer(msg):
     room_id = msg.get("room_id", "default-room")
     kiosk_sid = rooms.get(room_id, {}).get("kiosk")
-    logger.info("[SERVER] Answer na sala=%s -> repassando p/ kiosk.", room_id)
+    logger.info("[SERVER] Answer na sala=%s -> repassando p/ kiosk", room_id)
     if kiosk_sid:
         socketio.emit('answer', msg, room=kiosk_sid)
 
