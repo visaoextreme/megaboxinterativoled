@@ -6,18 +6,18 @@ import os
 #######################
 VERSION = "1.0.0"
 
-# URL do backend (caso precise referenciar internamente)
+# URL do backend (Render) – altere para o domínio do seu deploy
 BACKEND_URL = "https://megaboxinterativoled.onrender.com"
 
-# Token de autenticação para acessar a rota /api/v1/salas
+# Token de autenticação para acessar a API (ex.: /api/v1/salas)
 SECRET_API_TOKEN = "5up3r53cr3tT0ken!537847349"
 
 #######################
 # SINALIZAÇÃO
 #######################
-# Em produção, você pode definir SIGNALING_URL = BACKEND_URL
-# Para testes locais => http://localhost:5000
-SIGNALING_URL = os.getenv("SIGNALING_URL", "http://localhost:5000")
+# Em produção, use o endereço do Render para a sinalização.
+# Assim, os clientes não tentarão se conectar a "localhost".
+SIGNALING_URL = BACKEND_URL  
 AUTH_TOKEN = "segredo123"  # Token simples para kiosk/remote
 
 #######################
@@ -25,7 +25,7 @@ AUTH_TOKEN = "segredo123"  # Token simples para kiosk/remote
 #######################
 ICE_SERVERS = [
     {"urls": "stun:stun.l.google.com:19302"}
-    # Se precisar de TURN, adicione aqui
+    # Adicione servidores TURN se necessário.
 ]
 
 #######################
