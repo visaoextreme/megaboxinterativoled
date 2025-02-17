@@ -37,8 +37,13 @@ def api_salas():
     token_header = request.headers.get("X-Secret-Token")
     if token_header != SECRET_API_TOKEN:
         return jsonify({"error": "Acesso não autorizado"}), 401
-    data = {room_id: {"kiosk": mapping["kiosk"], "remote": mapping["remote"]}
-            for room_id, mapping in rooms.items()}
+    data = {
+        room_id: {
+            "kiosk": mapping["kiosk"],
+            "remote": mapping["remote"]
+        }
+        for room_id, mapping in rooms.items()
+    }
     return jsonify(data)
 
 ###############################
@@ -109,6 +114,7 @@ def on_ice_candidate(msg):
     sender = request.sid
     kiosk_sid = rooms[room_id].get("kiosk")
     remote_sid = rooms[room_id].get("remote")
+
     if sender == kiosk_sid and remote_sid:
         socketio.emit('ice-candidate', msg, room=remote_sid)
     elif sender == remote_sid and kiosk_sid:
@@ -120,6 +126,7 @@ def on_hangup(msg):
     sender = request.sid
     kiosk_sid = rooms[room_id].get("kiosk")
     remote_sid = rooms[room_id].get("remote")
+
     if sender == kiosk_sid and remote_sid:
         logger.info("[SERVER] Hangup de kiosk para remote, sala=%s", room_id)
         socketio.emit('hangup', {}, room=remote_sid)
@@ -133,6 +140,7 @@ def on_renegotiate(msg):
     sender = request.sid
     kiosk_sid = rooms[room_id].get("kiosk")
     remote_sid = rooms[room_id].get("remote")
+
     if sender == remote_sid and kiosk_sid:
         logger.info("[SERVER] Remote renegotiate para kiosk, sala=%s", room_id)
         socketio.emit('renegotiate', {}, room=kiosk_sid)
@@ -152,6 +160,8 @@ def on_disconnect():
             mapping["remote"] = None
             logger.info("[SERVER] Removido remote da sala=%s (disconnect)", r_id)
 
+# Se quiser rodar localmente, basta: python app.py
+# No Render, "gunicorn app:app" vai rodar automaticamente (Procfile ou comando Start).
 if __name__ == "__main__":
     logger.info("[SERVER] Iniciando BOXINTERATIVA na porta=%d, debug=%s", PORT, DEBUG_MODE)
     socketio.run(app, host='0.0.0.0', port=PORT, debug=DEBUG_MODE)
