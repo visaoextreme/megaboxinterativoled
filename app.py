@@ -5,16 +5,18 @@ import logging
 from logging.handlers import RotatingFileHandler
 from flask import Flask, render_template_string, request, jsonify
 from flask_socketio import SocketIO, emit
+import os
 
-from config import (
+# Importa as configurações a partir do arquivo backend_config.py
+from backend_config import (
     AUTH_TOKEN,
     LOG_FILE_SERVER,
     PORT,
     DEBUG_MODE,
-    VERSION,
     SECRET_API_TOKEN
 )
 
+# Configuração do logger
 logger = logging.getLogger("boxinterativa.server")
 logger.setLevel(logging.INFO)
 log_handler = RotatingFileHandler(LOG_FILE_SERVER, maxBytes=5_000_000, backupCount=2)
@@ -29,11 +31,17 @@ socketio = SocketIO(app, cors_allowed_origins='*')
 # Dicionário de salas: rooms[room_id] = {"kiosk": sid, "remote": sid}
 rooms = {}
 
-###############################
-# API Endpoint para Gerenciamento de Salas
-###############################
+@app.route('/')
+def index():
+    return "Servidor BOXINTERATIVA rodando! Aguardando conexões..."
+
 @app.route('/api/v1/salas', methods=['GET'])
 def api_salas():
+    """
+    Retorna as salas atuais, mostrando os SIDs conectados de kiosk e remote.
+    É necessário enviar o cabeçalho:
+       X-Secret-Token: 5up3r53cr3tT0ken!537847349
+    """
     token_header = request.headers.get("X-Secret-Token")
     if token_header != SECRET_API_TOKEN:
         return jsonify({"error": "Acesso não autorizado"}), 401
@@ -46,9 +54,6 @@ def api_salas():
     }
     return jsonify(data)
 
-###############################
-# Interface de Gerenciamento Simples
-###############################
 @app.route('/manage')
 def manage_rooms():
     html = "<h1>Gerenciamento de Salas</h1><ul>"
@@ -59,10 +64,6 @@ def manage_rooms():
     html += "</ul>"
     return render_template_string(html)
 
-@app.route('/')
-def index():
-    return "Servidor BOXINTERATIVA rodando! Aguardando conexões..."
-
 @socketio.on('connect')
 def on_connect():
     sid = request.sid
@@ -70,6 +71,14 @@ def on_connect():
 
 @socketio.on('register')
 def on_register(data):
+    """
+    Exemplo de payload:
+    {
+      'role': 'kiosk' ou 'remote',
+      'token': 'segredo123',
+      'room_id': 'my-room'
+    }
+    """
     role = data.get('role')
     token = data.get('token')
     room_id = data.get('room_id', "default-room")
