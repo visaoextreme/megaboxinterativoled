@@ -14,11 +14,9 @@ SECRET_API_TOKEN = "5up3r53cr3tT0ken!537847349"
 #######################
 # SINALIZAÇÃO
 #######################
-# Em produção, você pode configurar a URL real do servidor:
-# Exemplo: SIGNALING_URL = BACKEND_URL
-# Para testes locais, pode ser "http://localhost:5000"
+# Para testes locais, SIGNALING_URL pode ser "http://localhost:5000"
+# Em produção, você pode definir SIGNALING_URL = BACKEND_URL
 SIGNALING_URL = os.getenv("SIGNALING_URL", "http://localhost:5000")
-
 AUTH_TOKEN = "segredo123"  # Token simples para kiosk/remote
 
 #######################
@@ -26,8 +24,8 @@ AUTH_TOKEN = "segredo123"  # Token simples para kiosk/remote
 #######################
 ICE_SERVERS = [
     {"urls": "stun:stun.l.google.com:19302"}
-    # Se precisar de TURN, configure aqui:
-    # {"urls": "turn:meu-servidor-turn:3478", "username": "user", "credential": "pass"}
+    # Se necessário, configure um servidor TURN:
+    # {"urls": "turn:seu-turn-servidor:3478", "username": "user", "credential": "pass"}
 ]
 
 #######################
