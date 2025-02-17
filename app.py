@@ -1,3 +1,4 @@
+# app.py
 import eventlet
 eventlet.monkey_patch()
 
@@ -56,6 +57,7 @@ def api_salas():
 
 @app.route('/manage')
 def manage_rooms():
+    """Página simples para gerenciar e visualizar salas e SIDs conectados."""
     html = "<h1>Gerenciamento de Salas</h1><ul>"
     for room_id, mapping in rooms.items():
         kiosk_sid = mapping["kiosk"]
