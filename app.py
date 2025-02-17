@@ -8,7 +8,6 @@ from flask import Flask, render_template_string, request, jsonify
 from flask_socketio import SocketIO, emit
 import os
 
-# Importa as configurações a partir do arquivo backend_config.py
 from backend_config import (
     AUTH_TOKEN,
     LOG_FILE_SERVER,
@@ -29,7 +28,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secretkey'
 socketio = SocketIO(app, cors_allowed_origins='*')
 
-# Dicionário de salas: rooms[room_id] = {"kiosk": sid, "remote": sid}
+# Dicionário de salas: cada sala guarda os SIDs de kiosk e remote
 rooms = {}
 
 @app.route('/')
@@ -38,11 +37,6 @@ def index():
 
 @app.route('/api/v1/salas', methods=['GET'])
 def api_salas():
-    """
-    Retorna as salas atuais, mostrando os SIDs conectados de kiosk e remote.
-    É necessário enviar o cabeçalho:
-       X-Secret-Token: 5up3r53cr3tT0ken!537847349
-    """
     token_header = request.headers.get("X-Secret-Token")
     if token_header != SECRET_API_TOKEN:
         return jsonify({"error": "Acesso não autorizado"}), 401
@@ -57,7 +51,6 @@ def api_salas():
 
 @app.route('/manage')
 def manage_rooms():
-    """Página simples para gerenciar e visualizar salas e SIDs conectados."""
     html = "<h1>Gerenciamento de Salas</h1><ul>"
     for room_id, mapping in rooms.items():
         kiosk_sid = mapping["kiosk"]
@@ -73,14 +66,6 @@ def on_connect():
 
 @socketio.on('register')
 def on_register(data):
-    """
-    Exemplo de payload:
-    {
-      'role': 'kiosk' ou 'remote',
-      'token': 'segredo123',
-      'room_id': 'my-room'
-    }
-    """
     role = data.get('role')
     token = data.get('token')
     room_id = data.get('room_id', "default-room")
