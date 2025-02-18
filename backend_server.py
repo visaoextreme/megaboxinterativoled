@@ -7,6 +7,7 @@ from flask import Flask, request, jsonify
 from flask_socketio import SocketIO, emit
 import os
 
+# Importa as variáveis do backend_config
 from backend_config import (
     AUTH_TOKEN,
     LOG_FILE_SERVER,
@@ -33,9 +34,11 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 # Estrutura para manter quem é Kiosk e quem é Remote em cada sala
 rooms = {}  # rooms[room_id] = { "kiosk": sid, "remote": sid }
 
+
 @app.route("/")
 def index():
     return "BoxInterativa Backend is running..."
+
 
 @app.route("/api/v1/salas", methods=["GET"])
 def api_salas():
@@ -46,7 +49,7 @@ def api_salas():
     token_header = request.headers.get("X-Secret-Token")
     if token_header != SECRET_API_TOKEN:
         return jsonify({"error": "Acesso não autorizado"}), 401
-    
+
     data = {}
     for room_id, mapping in rooms.items():
         data[room_id] = {
@@ -55,10 +58,12 @@ def api_salas():
         }
     return jsonify(data), 200
 
+
 @socketio.on("connect")
 def on_connect():
     sid = request.sid
     logger.info("Novo cliente conectado: %s", sid)
+
 
 @socketio.on("register")
 def on_register(data):
@@ -75,7 +80,7 @@ def on_register(data):
     token = data.get("token")
     room_id = data.get("room_id", "default-room")
 
-    # Verifica token simples
+    # Verifica token
     if token != AUTH_TOKEN:
         emit("auth-error", {"error": "Invalid token"}, room=sid)
         return
@@ -93,6 +98,7 @@ def on_register(data):
     else:
         logger.warning("Role desconhecido: %s", role)
 
+
 @socketio.on("offer")
 def on_offer(msg):
     """
@@ -104,6 +110,7 @@ def on_offer(msg):
         if remote_sid:
             socketio.emit("offer", msg, room=remote_sid)
 
+
 @socketio.on("answer")
 def on_answer(msg):
     """
@@ -114,6 +121,7 @@ def on_answer(msg):
         kiosk_sid = rooms[room_id]["kiosk"]
         if kiosk_sid:
             socketio.emit("answer", msg, room=kiosk_sid)
+
 
 @socketio.on("ice-candidate")
 def on_ice_candidate(msg):
@@ -132,6 +140,7 @@ def on_ice_candidate(msg):
         elif sender == remote_sid and kiosk_sid:
             socketio.emit("ice-candidate", msg, room=kiosk_sid)
 
+
 @socketio.on("hangup")
 def on_hangup(msg):
     """
@@ -147,6 +156,7 @@ def on_hangup(msg):
         elif sender == remote_sid and kiosk_sid:
             socketio.emit("hangup", {}, room=kiosk_sid)
 
+
 @socketio.on("disconnect")
 def on_disconnect():
     """
@@ -160,6 +170,7 @@ def on_disconnect():
         if mapping["remote"] == sid:
             mapping["remote"] = None
             logger.info("Remote desconectou da sala=%s", room_id)
+
 
 if __name__ == "__main__":
     logger.info("Iniciando Backend BoxInterativa na porta=%d", PORT)
