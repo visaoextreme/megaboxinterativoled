@@ -1,3 +1,5 @@
+# backend_server.py
+
 import eventlet
 eventlet.monkey_patch()
 
@@ -7,7 +9,8 @@ from flask import Flask, request, jsonify
 from flask_socketio import SocketIO, emit
 import os
 
-# Importa as variáveis do backend_config
+# Aqui nós importamos APENAS as constantes do arquivo backend_config.py.
+# backend_config.py deve conter SOMENTE as definições de variáveis (e não se importar a si mesmo).
 from backend_config import (
     AUTH_TOKEN,
     LOG_FILE_SERVER,
@@ -32,7 +35,8 @@ app.config["SECRET_KEY"] = "secretkey"
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Estrutura para manter quem é Kiosk e quem é Remote em cada sala
-rooms = {}  # rooms[room_id] = { "kiosk": sid, "remote": sid }
+# Exemplo: rooms["my-room"] = {"kiosk": <sid_kiosk>, "remote": <sid_remote>}
+rooms = {}
 
 
 @app.route("/")
@@ -44,7 +48,7 @@ def index():
 def api_salas():
     """
     Retorna as salas atuais, mostrando se kiosk e remote estão conectados.
-    Exige cabeçalho X-Secret-Token = SECRET_API_TOKEN
+    Exige cabeçalho: X-Secret-Token = SECRET_API_TOKEN
     """
     token_header = request.headers.get("X-Secret-Token")
     if token_header != SECRET_API_TOKEN:
@@ -70,9 +74,9 @@ def on_register(data):
     """
     Exemplo de data:
     {
-      'role': 'kiosk' ou 'remote',
-      'token': 'segredo123',
-      'room_id': 'my-room'
+        'role': 'kiosk' ou 'remote',
+        'token': 'segredo123',
+        'room_id': 'my-room'
     }
     """
     sid = request.sid
@@ -80,7 +84,7 @@ def on_register(data):
     token = data.get("token")
     room_id = data.get("room_id", "default-room")
 
-    # Verifica token
+    # Verifica token simples
     if token != AUTH_TOKEN:
         emit("auth-error", {"error": "Invalid token"}, room=sid)
         return
@@ -89,6 +93,7 @@ def on_register(data):
     if room_id not in rooms:
         rooms[room_id] = {"kiosk": None, "remote": None}
 
+    # Atribui o SID do cliente à role correspondente (kiosk ou remote)
     if role == "kiosk":
         rooms[room_id]["kiosk"] = sid
         logger.info("Kiosk registrado -> sala=%s, sid=%s", room_id, sid)
@@ -102,7 +107,7 @@ def on_register(data):
 @socketio.on("offer")
 def on_offer(msg):
     """
-    Kiosk envia 'offer' -> repassa para Remote
+    Kiosk envia 'offer' -> repassa para o Remote
     """
     room_id = msg.get("room_id", "default-room")
     if room_id in rooms:
@@ -114,7 +119,7 @@ def on_offer(msg):
 @socketio.on("answer")
 def on_answer(msg):
     """
-    Remote envia 'answer' -> repassa para Kiosk
+    Remote envia 'answer' -> repassa para o Kiosk
     """
     room_id = msg.get("room_id", "default-room")
     if room_id in rooms:
@@ -133,10 +138,10 @@ def on_ice_candidate(msg):
     if room_id in rooms:
         kiosk_sid = rooms[room_id]["kiosk"]
         remote_sid = rooms[room_id]["remote"]
-        # Se veio do kiosk, manda pro remote
+        # Se veio do Kiosk, manda pro Remote
         if sender == kiosk_sid and remote_sid:
             socketio.emit("ice-candidate", msg, room=remote_sid)
-        # Se veio do remote, manda pro kiosk
+        # Se veio do Remote, manda pro Kiosk
         elif sender == remote_sid and kiosk_sid:
             socketio.emit("ice-candidate", msg, room=kiosk_sid)
 
