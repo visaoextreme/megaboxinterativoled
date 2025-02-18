@@ -1,4 +1,3 @@
-# backend_server.py
 import eventlet
 eventlet.monkey_patch()
 
@@ -165,5 +164,3 @@ def on_disconnect():
 if __name__ == "__main__":
     logger.info("Iniciando Backend BoxInterativa na porta=%d", PORT)
     socketio.run(app, host="0.0.0.0", port=PORT, debug=DEBUG_MODE)
-
-
