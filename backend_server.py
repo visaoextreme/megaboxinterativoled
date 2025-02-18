@@ -30,8 +30,8 @@ app.config["SECRET_KEY"] = "secretkey"
 # SocketIO com eventlet
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-# rooms[room_id] = { "kiosk": sid, "remote": sid }
-rooms = {}
+# Estrutura para manter quem é Kiosk e quem é Remote em cada sala
+rooms = {}  # rooms[room_id] = { "kiosk": sid, "remote": sid }
 
 @app.route("/")
 def index():
@@ -40,7 +40,7 @@ def index():
 @app.route("/api/v1/salas", methods=["GET"])
 def api_salas():
     """
-    Retorna as salas atuais, mostrando se kiosk e remote estão conectados
+    Retorna as salas atuais, mostrando se kiosk e remote estão conectados.
     Exige cabeçalho X-Secret-Token = SECRET_API_TOKEN
     """
     token_header = request.headers.get("X-Secret-Token")
@@ -75,7 +75,7 @@ def on_register(data):
     token = data.get("token")
     room_id = data.get("room_id", "default-room")
 
-    # Verifica token
+    # Verifica token simples
     if token != AUTH_TOKEN:
         emit("auth-error", {"error": "Invalid token"}, room=sid)
         return
