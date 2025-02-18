@@ -1,4 +1,3 @@
-# backend_config.py
 import os
 
 #######################
@@ -6,7 +5,8 @@ import os
 #######################
 VERSION = "1.0.0"
 
-# URL do backend (Render) – altere para o domínio do seu deploy
+# URL do backend (Render) – altere para o domínio do seu deploy no Render.com
+# Exemplo fictício:
 BACKEND_URL = "https://megaboxinterativoled.onrender.com"
 
 # Token de autenticação para acessar a API (ex.: /api/v1/salas)
